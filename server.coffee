@@ -82,7 +82,6 @@ extendPublish (name, publishFunction, options) ->
 
     publish._installCallbacks = ->
       computation = @_currentComputation()
-
       return unless computation
 
       unless computation._publishOnStopSet
@@ -164,8 +163,14 @@ extendPublish (name, publishFunction, options) ->
     # This autorun is nothing special, just that it makes sure handles are stopped when publish stops,
     # and that you can return cursors from the function which would be automatically published.
     publish.autorun = (runFunc) ->
+      unless publish.language
+        publish.language = Fiber.current.language_tag
       handle = Tracker.autorun (computation) ->
+        if publish.language
+            Fiber.current.language_tag = publish.language
         result = runFunc.call publish, computation
+        if publish.language
+          delete Fiber.current.language_tag
 
         unless checkNames publish, collectionNames, computation, result
           computation.stop()
